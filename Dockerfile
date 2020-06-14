@@ -8,20 +8,22 @@ USER app
 # Working directory
 WORKDIR /usr/src/app
 
-# Ruby-Gems
-RUN bundle config --global frozen 1
-COPY Gemfile Gemfile.lock ./
-RUN bundle install -j4 --quiet
-
 # Copy source-files
-COPY config.ru webserver.rb model.rb ./
+COPY --chown=app:app Gemfile Gemfile.lock config.ru webserver.rb model.rb ./
+
+# Ruby-Gems
+RUN bundle lock --update && \
+    bundle install --jobs=4
 
 # Send "ctrl-c"-like signal when stopping
 STOPSIGNAL SIGINT
 
+# Expose port 8080
 EXPOSE 8080
 
+# Set environment-variables to read
 ENV USERNAME="some_username"
 ENV PASSWORD="some_password"
 
+# Start the server
 CMD ["rackup", "-p8080", "--host", "0.0.0.0", "-E", "production", "-s", "webrick"]
