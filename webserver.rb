@@ -50,10 +50,14 @@ class Webserver < Sinatra::Base
     #
     # Set up Prometheus
     prometheus = Prometheus::Client.registry
-    @@requests_total = Prometheus::Client::Counter.new(:requests_total, docstring: "total_requests", labels: [:service])
+    @@requests_total = Prometheus::Client::Counter.new(:requests_total, docstring: "total_requests", labels: [:endpoint])
     prometheus.register(@@requests_total)
     @@model = Model.new(username, password)
     $logger.info({:message => "Configuration done!"})
+
+    #
+    # Set up dummy-data
+    @@ok_json = {status: "ok"}.to_json
 
   end
 
@@ -61,9 +65,8 @@ class Webserver < Sinatra::Base
   #
   # Base-endpoint for Kubernetes
   get "/readiness" do
-    data = "{\"status\":\"ok\"}\n"
     content_type :json
-    [200, [data]]
+    [200, [@@ok_json]]
   end
 
 
@@ -71,11 +74,10 @@ class Webserver < Sinatra::Base
   # Base-endpoint for Kubernetes
   get "/ping" do
     $logger.info({:message => "rack GET /ping"})
+    @@requests_total.increment(labels: { endpoint: "/ping" })
 
-    @@requests_total.increment(labels: { service: "ping" })
-    data = "{\"status\":\"ok\"}\n"
     content_type :json
-    [200, [data]]
+    [200, [@@ok_json]]
   end
 
 
@@ -83,10 +85,10 @@ class Webserver < Sinatra::Base
   # Base-endpoint
   get "/" do
     $logger.info({:message => "rack GET /"})
-
-    data = "{\"status\":\"ok\"}\n"
+    @@requests_total.increment(labels: { endpoint: "/" })
+    
     content_type :json
-    [200, [data]]
+    [200, [@@ok_json]]
   end
 
 end
