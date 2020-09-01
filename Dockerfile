@@ -8,12 +8,15 @@ USER app
 # Working directory
 WORKDIR /usr/src/app
 
-# Copy source-files
-COPY --chown=app:app Gemfile Gemfile.lock config.ru webserver.rb model.rb ./
+# Copy bundler Gemfile for rubygems
+COPY --chown=app:app Gemfile Gemfile.lock ./
 
 # Ruby-Gems
 RUN bundle lock --update && \
     bundle install --jobs=4
+
+# Copy source-files
+COPY --chown=app:app config.ru webserver.rb model.rb ./
 
 # Send "ctrl-c"-like signal when stopping
 STOPSIGNAL SIGINT
