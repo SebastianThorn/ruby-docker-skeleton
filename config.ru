@@ -8,18 +8,30 @@ require "prometheus/middleware/collector"
 require "prometheus/middleware/exporter"
 use Rack::Deflater
 
-#use Prometheus::Middleware::Collector # This adds automatic metrics
+#
+# Cathing SIGTERM and replacing with SIGINT.
+# Some Cloud-providers ignore STOPSIGLAN in the Dockerfile
+# This problem is found in Google Cloud Run
+trap "SIGTERM" do Process.kill("SIGINT", 0) end
+
+#
+# Handle metrics, these are available under /metrics
+#use Prometheus::Middleware::Collector # This adds automatic metrics for endpoints
 use Prometheus::Middleware::Exporter
 
+#
+# Load the webserver
 require "./webserver.rb"
 
+#
+# Sync stdout immediately, this is needed when running in Docker
 $stdout.sync = true
 
+#
+# Change Rack-logging to json
 module Rack
   class CommonLogger
     def log(env, status, header, began_at)
-      # Make rack log json
-
       log_data = {
         type: "rack",
         remoteIP: env['HTTP_X_FORWARDED_FOR'] || env["REMOTE_ADDR"] || "-",
@@ -33,11 +45,12 @@ module Rack
         short_message: "#{env[REQUEST_METHOD]} #{env[PATH_INFO]}",
       }
       $logger.info(log_data)
-
     end
   end
 end
 
+#
+# Changel WEBrick-logging to json
 module WEBrick
   class Log < BasicLog
     def log(level, data)
@@ -59,4 +72,6 @@ module WEBrick
   end
 end
 
+#
+# Start the webserver
 run Webserver
