@@ -16,7 +16,7 @@ RUN bundle lock --update && \
     bundle install --jobs=4
 
 # Copy source-files
-COPY --chown=app:app config.ru webserver.rb model.rb ./
+COPY --chown=app:app webserver.rb config.ru model.rb ./
 
 # Send "ctrl-c"-like signal when stopping
 STOPSIGNAL SIGINT
